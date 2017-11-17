@@ -34,7 +34,7 @@ int Rbackward = 94; // was 100
 #define height 4
 #define width 5
 struct Node {
-  char visited = 0; 
+  char visitedVar = 0; 
   int x;
   int y; 
 };
@@ -114,7 +114,7 @@ pinMode(RightRear, INPUT);
 pinMode(IR_LEFT, INPUT);
    pinMode(IR_RIGHT, INPUT);
    pinMode(IR_FOR, INPUT);
-   pinMode(ledPin, OUTPUT);
+   //pinMode(ledPin, OUTPUT);
 
 
    //initialize maze
@@ -123,10 +123,10 @@ pinMode(IR_LEFT, INPUT);
 //  char visited[width][height]; 
   for (int i = 0; i < width; i++) {
     for (int j = 0; j < height; j++) {
-      maze[i][j].visited = 0;
+      maze[i][j].visitedVar = 0;
       maze[i][j].x = i;
-      maze[i][j].x = j;
-      //visited[i][j] = 0; 
+      maze[i][j].y = j;
+
                         
     }
   }
@@ -155,9 +155,6 @@ LineFollowing();
         Serial.println("Left Rear Detected");
         turnRight = 0;
 
-        //noInterrupts();
-        
-        
   } 
   if (turnLeft) {
         
@@ -188,8 +185,8 @@ LineFollowing();
         left.write(Lforward);
         right.write(Rforward); // verify this works.. want right wheel to go backwards
         Serial.println("Go Straight");
-
-        while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
+        delay(100);
+        //while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
         Serial.println("Left Rear Detected");
         
         goStraight = 0;
@@ -260,20 +257,15 @@ void IR() {
 ///////////////////////////////////////////////////////
 void LineFollowing() {
 
-if (turnRight || turnLeft || turn180) {
-  // do nothing
-}
-
-else { // do everything else in this ISR
-  
-
     if (digitalRead(Left)) LFCrossed = 1;
    else LFCrossed = 0;
+   Serial.print("Left Front: ");Serial.println(LFCrossed);
 
    //determine line status for right sensor
    if (digitalRead(Right)) RFCrossed = 1;
    else RFCrossed = 0;
-
+   Serial.print("Right Front: ");Serial.println(RFCrossed);
+   
   //drive servos
    // if both sensors on either side of line
    if(!LFCrossed && !RFCrossed){
@@ -286,6 +278,7 @@ else { // do everything else in this ISR
     left.write(Lforward);          
     right.write(Rforward + 2); // slow down right wheel slightly
     Serial.println("Robot drifted left");
+    delay(500);
     
    }
 
@@ -293,7 +286,7 @@ else { // do everything else in this ISR
     left.write(Lforward - 2); // slow down left wheel slightly            
     right.write(Rforward);
     Serial.println("Robot drifted right");
-    
+    delay(500);
     
    }
   
@@ -312,7 +305,6 @@ else { // do everything else in this ISR
   }
 
    Serial.print("\n");
-}
 
 }
 
@@ -339,7 +331,7 @@ void traverse() {
     visited.pop(); 
     curr_x = curr_pos.x; 
     curr_y = curr_pos.y;
-    curr_pos.visited = 1; //mark as visited
+    curr_pos.visitedVar = 1; //mark as visited
                 //Serial.println("Just visited: %d, %d", curr_x, curr_y); 
                  Serial.print(curr_x); Serial.println(curr_y);
     //Look for next wall to visit
@@ -347,19 +339,27 @@ void traverse() {
     //string wall_bin = bitset<4>(wall_loc[curr_x][curr_y]).to_string(); //to binary
     int wall_bin = wall_loc[curr_x][curr_y]; 
     //check if wall at north
-    if (bitRead(wall_bin,0) == 0) go_north = !(maze[curr_x][curr_y+1].visited );
+    //if (bitRead(wall_bin,0) == 0) go_north = !(maze[curr_x][curr_y+1].visitedVar );
+        if (bitRead(wall_bin,0) == 0) go_north = 1;
+
     else go_north = 0; 
 
     //check if wall at east
-    if (bitRead(wall_bin, 1) == 0) go_east = (!(maze[curr_x-1][curr_y].visited & !go_north) );
+    //if (bitRead(wall_bin, 1) == 0) go_east = (!(maze[curr_x-1][curr_y].visitedVar & !go_north) );
+            if (bitRead(wall_bin,1) == 0) go_east = 1;
+
     else go_east = 0; 
 
     //check if wall at west
-    if (bitRead(wall_bin, 2) == 0) go_west = (!maze[curr_x+1][curr_y].visited & !go_east); 
+    //if (bitRead(wall_bin, 2) == 0) go_west = (!maze[curr_x+1][curr_y].visitedVar & !go_east); 
+            if (bitRead(wall_bin,2) == 0) go_west = 1;
+
     else go_west = 0; 
 
     //check if wall at south
-    if (bitRead(wall_bin, 3) == 0) go_south = ((!maze[curr_x][curr_y - 1].visited) & !go_west); 
+   // if (bitRead(wall_bin, 3) == 0) go_south = ((!maze[curr_x][curr_y - 1].visitedVar) & !go_west);
+            if (bitRead(wall_bin,3) == 0) go_south = 1;
+ 
     else go_south = 0;
 
   Serial.print(Direction);
