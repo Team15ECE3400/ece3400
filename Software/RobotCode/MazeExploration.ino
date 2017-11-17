@@ -22,6 +22,12 @@ int goStraight = 0;
 int LeftRear = 4;
 int RightRear = 7;
 
+// Speeds for motors
+int Lforward = 94; // was 100
+int Lbackward = 86; // was 80
+int Stop = 90;
+int Rforward = 86; // was 80
+int Rbackward = 94; // was 100
 
 #include "StackArray.h"
 #include <stdio.h>
@@ -80,7 +86,7 @@ int frontWallSensor = 0;
   // 1 is East
   // 2 is West
   // 3 is South
-  int direction = 0;
+  int Direction = 0;
   Node maze[width][height]; //stores maze 
   int wall_loc[width][height];
 
@@ -128,27 +134,25 @@ pinMode(IR_LEFT, INPUT);
 
 }
 
-
 void loop() {
 
 LineFollowing();
-//IR();
   
   //delay(1000000);
   //left.write(100);            
   //right.write(80);
 //if (digitalRead(LeftRear)) Serial.println("LeftRear");
 //if (digitalRead(RightRear)) Serial.println("RightRear");
-delay(500);
 
   // critical, time-sensitive code here
   //noInterrupts();
   if (turnRight) {
-        left.write(100);
-        right.write(100); // verify this works.. want right wheel to go backwards
+        left.write(Lforward);
+        right.write(Rbackward); // verify this works.. want right wheel to go backwards
         Serial.println("Turn 90 Degrees Right");
-        
+
         while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
+        Serial.println("Left Rear Detected");
         turnRight = 0;
 
         //noInterrupts();
@@ -157,32 +161,36 @@ delay(500);
   } 
   if (turnLeft) {
         
-        left.write(80);  // verify this works.. want left wheel to go backwards
-        right.write(80);
+        left.write(Lbackward);  // verify this works.. want left wheel to go backwards
+        right.write(Rforward);
         Serial.println("Turn 90 Degrees Left");
 
         while(!digitalRead(RightRear)); // Wait here until left rear sensor senses line
+        Serial.println("Right Rear Detected");
         turnLeft = 0;
 
   }
   if (turn180) {
-        left.write(100);
-        right.write(100); // verify this works.. want right wheel to go backwards
+        left.write(Lforward);
+        right.write(Rbackward); // verify this works.. want right wheel to go backwards
         Serial.println("Turn 180 Degrees");
 
         while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
+        Serial.println("Left Rear Detected");
         while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
+        Serial.println("Left Rear Detected");
         turn180 = 0;
 
   }
 
   if (goStraight) {
     
-        left.write(100);
-        right.write(80); // verify this works.. want right wheel to go backwards
+        left.write(Lforward);
+        right.write(Rforward); // verify this works.. want right wheel to go backwards
         Serial.println("Go Straight");
 
         while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
+        Serial.println("Left Rear Detected");
         
         goStraight = 0;
 
@@ -269,39 +277,38 @@ else { // do everything else in this ISR
   //drive servos
    // if both sensors on either side of line
    if(!LFCrossed && !RFCrossed){
-    left.write(100);            
-    right.write(80);
+    left.write(Lforward);            
+    right.write(Rforward);
     Serial.println("Centered");
    }
 
    else if(LFCrossed && !RFCrossed){
-    left.write(100);            
-    right.write(86);
+    left.write(Lforward);          
+    right.write(Rforward + 2); // slow down right wheel slightly
     Serial.println("Robot drifted left");
     
    }
 
    else if(!LFCrossed && RFCrossed){
-    left.write(94);            
-    right.write(80);
+    left.write(Lforward - 2); // slow down left wheel slightly            
+    right.write(Rforward);
     Serial.println("Robot drifted right");
     
     
    }
   
     else if((LFCrossed) && (RFCrossed)){ // Make a decision on whether to go left, right, or straight.
-      left.write(90);
-      right.write(90);
+      left.write(Stop);
+      right.write(Stop);
       Serial.println("Algorithm");
-    
+      
       traverse(); // this will assign variable "turnRight", "turnLeft", or "turn180" to 1
       
   }
 
     //if either light sensor is off the line (has onStat_ == 0)  
   else{
-     left.write(100);
-     right.write(100);
+// Do nothing
   }
 
    Serial.print("\n");
@@ -355,48 +362,52 @@ void traverse() {
     if (bitRead(wall_bin, 3) == 0) go_south = ((!maze[curr_x][curr_y - 1].visited) & !go_west); 
     else go_south = 0;
 
-  Serial.print(direction);
+  Serial.print(Direction);
+  Serial.print("North: ");Serial.println(go_north);
+  Serial.print("East: ");Serial.println(go_east);
+  Serial.print("West: ");Serial.println(go_west);
+  Serial.print("South: ");Serial.println(go_south);
 
     if (go_north) {
       next_pos = maze[curr_x][curr_y + 1];
       visited.push(next_pos);
-      if (direction == 0) goStraight = 1;
-      if (direction == 1) turnLeft = 1;
-      if (direction == 2) turnRight = 1;
-      if (direction == 3) turn180 = 1;
+      if (Direction == 0) goStraight = 1;
+      if (Direction == 1) turnLeft = 1;
+      if (Direction == 2) turnRight = 1;
+      if (Direction == 3) turn180 = 1;
       
-      direction = 0;
+      Direction = 0;
       Serial.println(". Now go North");
       
     }
     else if (go_east) {
       next_pos = maze[curr_x - 1][curr_y];
       visited.push(next_pos);
-      if (direction == 0) turnRight = 1;
-      if (direction == 1) goStraight = 1;
-      if (direction == 2) turn180 = 1;
-      if (direction == 3) turnLeft = 1;
-      direction = 1;
+      if (Direction == 0) turnRight = 1;
+      if (Direction == 1) goStraight = 1;
+      if (Direction == 2) turn180 = 1;
+      if (Direction == 3) turnLeft = 1;
+      Direction = 1;
       Serial.println("East");
     }
     else if (go_west) {
       next_pos = maze[curr_x - 1][curr_y];
       visited.push(next_pos);
-      if (direction == 0) turnLeft = 1;
-      if (direction == 1) turn180 = 1;
-      if (direction == 2) goStraight = 1;
-      if (direction == 3) turnRight = 1;
-      direction = 2;
+      if (Direction == 0) turnLeft = 1;
+      if (Direction == 1) turn180 = 1;
+      if (Direction == 2) goStraight = 1;
+      if (Direction == 3) turnRight = 1;
+      Direction = 2;
       Serial.println("West");
     }
     else if (go_south) {
       next_pos = maze[curr_x][curr_y - 1];
       visited.push(next_pos);
-      if (direction == 0) turn180 = 1;
-      if (direction == 1) turnRight = 1;
-      if (direction == 2) turnLeft = 1;
-      if (direction == 3) goStraight = 1;
-      direction = 3;
+      if (Direction == 0) turn180 = 1;
+      if (Direction == 1) turnRight = 1;
+      if (Direction == 2) turnLeft = 1;
+      if (Direction == 3) goStraight = 1;
+      Direction = 3;
       Serial.println("South");
     }
     else {
@@ -416,25 +427,25 @@ void traverse() {
 
 
   void checkWalls(){
-  if(direction ==0){
+  if(Direction ==0){
     bitWrite(wall_loc[curr_x][curr_y], 0, frontWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 1, rightWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 2, leftWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 3, 0);
   }
-  if(direction ==1){
+  if(Direction ==1){
     bitWrite(wall_loc[curr_x][curr_y], 0, leftWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 1, frontWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 2, 0);
     bitWrite(wall_loc[curr_x][curr_y], 3, rightWallSensor);
   }
-  if(direction ==2){
+  if(Direction ==2){
     bitWrite(wall_loc[curr_x][curr_y], 2, frontWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 1, 0);
     bitWrite(wall_loc[curr_x][curr_y], 0, rightWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 3, leftWallSensor);
   }
-  if(direction == 3){
+  if(Direction == 3){
     bitWrite(wall_loc[curr_x][curr_y], 2, rightWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 3, frontWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 1, leftWallSensor);
