@@ -258,7 +258,7 @@ void LineFollowing() {
     // Do nothing
   }
   
-   if(analogRead(RightRear) > 850 && analogRead(LeftRear) > 850 /* && CheckAgain */) { // Make a decision on whether to go left, right, or straight.
+   if(analogRead(RightRear) > 850 && analogRead(LeftRear) > 850  && CheckAgain ) { // Make a decision on whether to go left, right, or straight.
       
       left.write(Stop);
       right.write(Stop);
