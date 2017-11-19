@@ -12,8 +12,8 @@ Servo right;
 int x=0;
 int y=1;
 
-const int Left = 3;
-const int Right = 2;
+const int Left = 2;
+const int Right = 3;
 int turnRight = 0;
 int turnLeft = 0;
 int turn180 = 0;
@@ -77,6 +77,7 @@ int frontWallSensor = 0;
 
 //create stack
   StackArray <Node> visited; 
+  int initNode =0; //push the first node to visited stack
   int step = 0; //keep track of total # of moves
   char go_north;
   char go_south;
@@ -130,8 +131,8 @@ LineFollowing();
         right.write(Rbackward); // verify this works.. want right wheel to go backwards
         Serial.println("Turn 90 Degrees Right");
         delay(500);
-        while(analogRead(RightRear) < 850); // Wait here until left rear sensor senses line
-        Serial.println("Left Rear Detected");
+        while(digitalRead(Right) ==0 ); // Wait here until right front sensor senses line
+        Serial.println("frontright Detected");
         turnRight = 0;
   } 
   if (turnLeft) {
@@ -139,8 +140,8 @@ LineFollowing();
         right.write(Rforward);
         Serial.println("Turn 90 Degrees Left");
         delay(500);
-        while(analogRead(RightRear) < 850); // Wait here until left rear sensor senses line
-        Serial.println("Right Rear Detected");
+        while(digitalRead(Left) == 0); // Wait here until left front sensor senses line
+        Serial.println("frontleft Detected");
         turnLeft = 0;
   }
   if (turn180) {
@@ -148,11 +149,11 @@ LineFollowing();
         right.write(Rbackward); // verify this works.. want right wheel to go backwards
         Serial.println("Turn 180 Degrees");
         delay(500);
-        while(analogRead(RightRear) < 850); // Wait here until left rear sensor senses line
-        Serial.println("Left Rear Detected");
+        while(digitalRead(Right) ==0); // Wait here until right front sensor senses line
+        Serial.println("frontright Detected part 1");
         delay(500);
-        while(analogRead(RightRear) < 850); // Wait here until left rear sensor senses line
-        Serial.println("Left Rear Detected");
+        while(digitalRead(Right) ==0); // Wait here until right front sensor senses line
+        Serial.println("frontright Detected part 2");
         turn180 = 0;
   }
 
@@ -257,7 +258,8 @@ void LineFollowing() {
     // Do nothing
   }
   
-    if(analogRead(RightRear) > 850 && analogRead(LeftRear) > 850 && CheckAgain) { // Make a decision on whether to go left, right, or straight.
+   if(analogRead(RightRear) > 850 && analogRead(LeftRear) > 850 /* && CheckAgain */) { // Make a decision on whether to go left, right, or straight.
+      
       left.write(Stop);
       right.write(Stop);
       Serial.println("Algorithm");
@@ -273,17 +275,19 @@ void LineFollowing() {
 
 
 int curr_x = 0; 
-  int curr_y = 0; 
+int curr_y = 0;        
+Node curr_pos; 
+Node next_pos;
 
 void traverse() {
 
   IR(); // check walls
 
   Serial.println("Traverse"); 
-  visited.push(maze[width][height]); 
-  
-        Node curr_pos; 
-        Node next_pos;
+  if(initNode == 0){
+    visited.push(maze[width-1][height-1]); 
+    initNode=1; //visited adds the corner node as the first element
+  }
   
   if (!visited.isEmpty()) {
     
