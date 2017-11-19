@@ -19,8 +19,10 @@ int turnLeft = 0;
 int turn180 = 0;
 int goStraight = 0;
 
-int LeftRear = 4;
-int RightRear = 7;
+int LeftRear = A2;
+int RightRear = A1;
+
+int CheckAgain = 0;
 
 // Speeds for motors
 int Lforward = 94; // was 100
@@ -63,8 +65,6 @@ float s1_dist_avg;
 float s2_dist_avg;
 float s3_dist_avg;
 
-int ledPin = 4;
-
 int sensorValue;
 float volts;
 float distance;
@@ -97,37 +97,24 @@ void setup() {
   right.attach(5);
   left.write(90);            
   right.write(90);
-  //left.write(100);            
-  //right.write(80);
   
-//attachInterrupt(digitalPinToInterrupt(Left), LineFollowing, CHANGE);
-//attachInterrupt(digitalPinToInterrupt(Right), LineFollowing, CHANGE);
-
-pinMode(Left, INPUT);
-pinMode(Right, INPUT);
-
-pinMode(LeftRear, INPUT);
-pinMode(RightRear, INPUT);
-
-//sei();
-
-pinMode(IR_LEFT, INPUT);
-   pinMode(IR_RIGHT, INPUT);
-   pinMode(IR_FOR, INPUT);
-   //pinMode(ledPin, OUTPUT);
-
-
-   //initialize maze
+  pinMode(Left, INPUT);
+  pinMode(Right, INPUT);
   
-  //int visited[width][height];
-//  char visited[width][height]; 
+  pinMode(LeftRear, INPUT);
+  pinMode(RightRear, INPUT);
+  
+  pinMode(IR_LEFT, INPUT);
+  pinMode(IR_RIGHT, INPUT);
+  pinMode(IR_FOR, INPUT);
+
+  // Initialize Maze
   for (int i = 0; i < width; i++) {
     for (int j = 0; j < height; j++) {
       maze[i][j].visitedVar = 0;
       maze[i][j].x = i;
       maze[i][j].y = j;
-
-                        
+        
     }
   }
   
@@ -138,73 +125,44 @@ void loop() {
 
 LineFollowing();
   
-  //delay(1000000);
-  //left.write(100);            
-  //right.write(80);
-//if (digitalRead(LeftRear)) Serial.println("LeftRear");
-//if (digitalRead(RightRear)) Serial.println("RightRear");
-
-  // critical, time-sensitive code here
-  //noInterrupts();
   if (turnRight) {
-        left.write(Lforward);
-        right.write(Rforward);
-        while(!digitalRead(LeftRear));
-    
         left.write(Lforward);
         right.write(Rbackward); // verify this works.. want right wheel to go backwards
         Serial.println("Turn 90 Degrees Right");
-
-        while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
+        delay(500);
+        while(analogRead(RightRear) < 850); // Wait here until left rear sensor senses line
         Serial.println("Left Rear Detected");
         turnRight = 0;
-
   } 
   if (turnLeft) {
-        left.write(Lforward);
-        right.write(Rforward);
-        while(!digitalRead(LeftRear));
-        
-        
         left.write(Lbackward);  // verify this works.. want left wheel to go backwards
         right.write(Rforward);
         Serial.println("Turn 90 Degrees Left");
-
-        while(!digitalRead(RightRear)); // Wait here until left rear sensor senses line
+        delay(500);
+        while(analogRead(RightRear) < 850); // Wait here until left rear sensor senses line
         Serial.println("Right Rear Detected");
         turnLeft = 0;
-
   }
   if (turn180) {
         left.write(Lforward);
-        right.write(Rforward);
-        while(!digitalRead(LeftRear));
-    
-        left.write(Lforward);
         right.write(Rbackward); // verify this works.. want right wheel to go backwards
         Serial.println("Turn 180 Degrees");
-
-        while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
+        delay(500);
+        while(analogRead(RightRear) < 850); // Wait here until left rear sensor senses line
         Serial.println("Left Rear Detected");
-        while(!digitalRead(LeftRear)); // Wait here until left rear sensor senses line
+        delay(500);
+        while(analogRead(RightRear) < 850); // Wait here until left rear sensor senses line
         Serial.println("Left Rear Detected");
         turn180 = 0;
-
   }
 
   if (goStraight) {
-    
         left.write(Lforward);
         right.write(Rforward); // verify this works.. want right wheel to go backwards
         Serial.println("Go Straight");
-        delay(100);
-        
         goStraight = 0;
-
   }
   
-  //interrupts();
-   
 }
 ///////////////////////////////////////////////////////
 void IR() {
@@ -261,7 +219,6 @@ void IR() {
   
   }
   i = 0;
-  //delay(3000);
 
 }
 ///////////////////////////////////////////////////////
@@ -269,51 +226,47 @@ void LineFollowing() {
 
     if (digitalRead(Left)) LFCrossed = 1;
    else LFCrossed = 0;
-   Serial.print("Left Front: ");Serial.println(LFCrossed);
 
    //determine line status for right sensor
    if (digitalRead(Right)) RFCrossed = 1;
    else RFCrossed = 0;
-   Serial.print("Right Front: ");Serial.println(RFCrossed);
    
   //drive servos
    // if both sensors on either side of line
    if(!LFCrossed && !RFCrossed){
     left.write(Lforward);            
     right.write(Rforward);
-    Serial.println("Centered");
    }
 
    else if(LFCrossed && !RFCrossed){
     left.write(Lforward);          
     right.write(Rforward + 2); // slow down right wheel slightly
-    Serial.println("Robot drifted left");
-    
    }
 
    else if(!LFCrossed && RFCrossed){
     left.write(Lforward - 2); // slow down left wheel slightly            
     right.write(Rforward);
-    Serial.println("Robot drifted right");
-    
    }
+
+   else if(LFCrossed && RFCrossed) {
+      CheckAgain = 1;
+    // do nothing
+  }
+    //if either light sensor is off the line (has onStat_ == 0)  
+  else{
+    // Do nothing
+  }
   
-    else if((LFCrossed) && (RFCrossed)){ // Make a decision on whether to go left, right, or straight.
+    if(analogRead(RightRear) > 850 && analogRead(LeftRear) > 850 && CheckAgain) { // Make a decision on whether to go left, right, or straight.
       left.write(Stop);
       right.write(Stop);
       Serial.println("Algorithm");
+      CheckAgain = 0;
       
       traverse(); // this will assign variable "turnRight", "turnLeft", or "turn180" to 1
       
   }
-
-    //if either light sensor is off the line (has onStat_ == 0)  
-  else{
-// Do nothing
-  }
-
-   Serial.print("\n");
-
+   
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -332,7 +285,6 @@ void traverse() {
         Node curr_pos; 
         Node next_pos;
   
-
   if (!visited.isEmpty()) {
     
     curr_pos = visited.peek(); //current position is peek of stack
