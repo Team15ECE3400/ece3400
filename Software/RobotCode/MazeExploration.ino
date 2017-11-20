@@ -332,48 +332,87 @@ void traverse() {
   Serial.print("West: ");Serial.println(go_west);
   Serial.print("South: ");Serial.println(go_south);
 
-    if (go_north) {
-      next_pos = maze[curr_x][curr_y + 1];
+   if(Direction ==0){
+    if (go_north) goStraight = 1;    
+    else if (go_east) { turnRight = 1; 
+      go_north =0;
+    }
+    else if (go_west){
+      turnLeft = 1;
+      go_north =0;
+      go_east = 0;
+    }
+    else if (go_south){ turn180 = 1;
+      go_north = 0;
+      go_east = 0;
+      go_west = 0;
+    }
+  }
+   if(Direction ==1){
+    if (go_east){ goStraight = 1;  
+      go_north = 0;}  
+    else if (go_south) { turnRight = 1;
+      go_north=0;
+      go_east =0;
+      go_west = 0;
+    }
+    else if (go_north) turnLeft = 1;
+    else if (go_west){ turn180 = 1;
+      go_east = 0;
+      go_north = 0; }
+  }
+   if(Direction ==2){
+    if (go_west) {goStraight = 1;   
+      go_north =0;
+      go_east = 0;
+    } 
+    else if (go_north) turnRight = 1;
+    else if (go_south) { turnLeft = 1;
+    go_north=0;
+      go_east =0;
+      go_west = 0;}
+    else if (go_east) {turn180 = 1;
+     go_north =0;}
+  }
+   if(Direction ==3){
+    if (go_south) {goStraight = 1;  
+    go_north=0;
+      go_east =0;
+      go_west = 0;}  
+    else if (go_west) {turnRight = 1;
+    go_north=0;
+      go_east =0;
+    }
+    else if (go_east) {turnLeft = 1;
+    go_north =0;}
+    else if (go_north) turn180 = 1;
+  }
+
+  if (go_north) {
+      next_pos = maze[curr_x][curr_y - 1];
       visited.push(next_pos);
-      if (Direction == 0) goStraight = 1;
-      if (Direction == 1) turnLeft = 1;
-      if (Direction == 2) turnRight = 1;
-      if (Direction == 3) turn180 = 1;
-      
       Direction = 0;
       Serial.println(". Now go North");
-      
     }
     else if (go_east) {
-      next_pos = maze[curr_x - 1][curr_y];
+      next_pos = maze[curr_x + 1][curr_y];
       visited.push(next_pos);
-      if (Direction == 0) turnRight = 1;
-      if (Direction == 1) goStraight = 1;
-      if (Direction == 2) turn180 = 1;
-      if (Direction == 3) turnLeft = 1;
       Direction = 1;
       Serial.println("East");
     }
     else if (go_west) {
       next_pos = maze[curr_x - 1][curr_y];
       visited.push(next_pos);
-      if (Direction == 0) turnLeft = 1;
-      if (Direction == 1) turn180 = 1;
-      if (Direction == 2) goStraight = 1;
-      if (Direction == 3) turnRight = 1;
       Direction = 2;
       Serial.println("West");
     }
     else if (go_south) {
-      next_pos = maze[curr_x][curr_y - 1];
+      next_pos = maze[curr_x][curr_y + 1];
       visited.push(next_pos);
-      if (Direction == 0) turn180 = 1;
-      if (Direction == 1) turnRight = 1;
-      if (Direction == 2) turnLeft = 1;
-      if (Direction == 3) goStraight = 1;
       Direction = 3;
       Serial.println("South");
     }
+
     else {
       next_pos = visited.peek(); 
       visited.pop(); 
