@@ -594,7 +594,7 @@ if (go_north) {
     Serial.println(" ");
   }
 
-  else {
+  else if(Traversing==0){
     Serial.print("Maze is complete");
     left.write(92);
     right.write(88);
