@@ -475,10 +475,115 @@ Traversing = 0;
       Serial.println("Go South");
     }
 
-    else {
+   else{
+if(Direction ==0){
+    if (go_north) goStraight = 1;    
+    else if (go_east) {
+      turnRight = 1; 
+      go_north =0;
+    }
+    else if (go_west){
+      turnLeft = 1;
+      go_north =0;
+      go_east = 0;
+    }
+    else if (go_south){
+      turn180 = 1;
+      go_north = 0;
+      go_east = 0;
+      go_west = 0;
+    }
+  }
+   if(Direction ==1){
+    if (go_east){
+      goStraight = 1;  
+      go_north = 0;}  
+    else if (go_south) {
+      turnRight = 1;
+      go_north=0;
+      go_east =0;
+      go_west = 0;
+    }
+    else if (go_north) turnLeft = 1;
+    else if (go_west){
+      turn180 = 1;
+      go_east = 0;
+      go_north = 0; }
+  }
+   if(Direction ==2){
+    if (go_west) {
+      goStraight = 1;   
+      go_north =0;
+      go_east = 0;
+    } 
+    else if (go_north) turnRight = 1;
+    else if (go_south) {
+      turnLeft = 1;
+      go_north=0;
+      go_east =0;
+      go_west = 0;}
+    else if (go_east) {
+     turn180 = 1;
+     go_north =0;
+     }
+  }
+   if(Direction ==3){
+    if (go_south) {
+      goStraight = 1;  
+      go_north=0;
+      go_east =0;
+      go_west = 0;}  
+    else if (go_west) {
+      turnRight = 1;
+      go_north=0;
+      go_east =0;
+    }
+    else if (go_east) {
+      turnLeft = 1;
+      go_north =0;}
+    else if (go_north) turn180 = 1;
+  }
+  
+if (go_north) {
+      next_pos = maze[curr_x][curr_y + 1];
+      visited.push(next_pos);
+      Direction = 0;
+      Serial.println("Go North back");
+    }
+    else if (go_east) {
+      next_pos = maze[curr_x + 1][curr_y];
+      visited.push(next_pos);
+      Direction = 1;
+      Serial.println("Go East back");
+    }
+    else if (go_west) {
+      next_pos = maze[curr_x - 1][curr_y];
+      visited.push(next_pos);
+      Direction = 2;
+      Serial.println("Go West back");
+    }
+    else if (go_south) {
+      next_pos = maze[curr_x][curr_y - 1];
+      visited.push(next_pos);
+      Direction = 3;
+      Serial.println("Go South back");
+    }
+
+}
+
+   /* else {
+      Serial.println("backtracking");
+     if(frontWallSensor==0){
+        goStraight=1;
+      }
+      else if(rightWallSensor ==0) turnRight = 1;
+      else if(leftWallSensor ==0) turnLeft = 1;
+      else { turn180=1;}
+        
       next_pos = visited.peek(); 
       visited.pop(); 
     }
+*/
 
     for (int j = height - 1; j >=0; j--) {
       for (int i = 0; i < width; i++) {
