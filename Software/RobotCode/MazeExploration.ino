@@ -14,8 +14,9 @@ const char* role_friendly_name[] = { "invalid", "Ping out", "Pong back"};
 role_e role = role_pong_back;
 bool ok;
 //int Direction; ////////////
+int PlusMinus;
 int xory;
-int treasure;
+int treasure = B10;
 int wall;
 int moved;                                  
 int data_transmit;
@@ -195,8 +196,6 @@ void setup() {
 }
 
 void loop() {
-
-  RADIO();
   
   if (turnRight) {
         left.write(Lforward);
@@ -343,8 +342,9 @@ void LineFollowing() {
       right.write(Stop);
       //Serial.println("Algorithm");
       CheckAgain = 0;
-      
+      moved = 1;
       traverse(); // this will assign variable "turnRight", "turnLeft", or "turn180" to 1
+      RADIO();
       
   }
    
@@ -523,24 +523,32 @@ Traversing = 0;
   }
 
   if (go_north) {
+    xory=1;
+    PlusMinus = 0;
       next_pos = maze[curr_x][curr_y + 1];
       visited.push(next_pos);
       Direction = 0;
       Serial.println("Go North");
     }
     else if (go_east) {
+      xory=0;
+      PlusMinus = 0;
       next_pos = maze[curr_x + 1][curr_y];
       visited.push(next_pos);
       Direction = 1;
       Serial.println("Go East");
     }
     else if (go_west) {
+       xory=0;
+       PlusMinus = 1;
       next_pos = maze[curr_x - 1][curr_y];
       visited.push(next_pos);
       Direction = 2;
       Serial.println("Go West");
     }
     else if (go_south) {
+      xory=1;
+      PlusMinus = 1;
       next_pos = maze[curr_x][curr_y - 1];
       visited.push(next_pos);
       Direction = 3;
@@ -617,24 +625,32 @@ if(Direction ==0){
   }
   
 if (go_north) {
+   xory=1;
+   PlusMinus = 0;
       next_pos = maze[curr_x][curr_y + 1];
       visited.push(next_pos);
       Direction = 0;
       Serial.println("Go North back");
     }
     else if (go_east) {
+       xory=0;
+       PlusMinus = 0;
       next_pos = maze[curr_x + 1][curr_y];
       visited.push(next_pos);
       Direction = 1;
       Serial.println("Go East back");
     }
     else if (go_west) {
+       xory=0;
+       PlusMinus = 1;
       next_pos = maze[curr_x - 1][curr_y];
       visited.push(next_pos);
       Direction = 2;
       Serial.println("Go West back");
     }
     else if (go_south) {
+       xory=1;
+       PlusMinus = 1;
       next_pos = maze[curr_x][curr_y - 1];
       visited.push(next_pos);
       Direction = 3;
@@ -682,6 +698,7 @@ void RADIO(void)
   //
   // Ping out role.  Repeatedly send the current time
   //
+  wall = frontWallSensor << 2| rightWallSensor<<1 | leftWallSensor;
 
   if (role == role_ping_out)
   {
@@ -699,9 +716,12 @@ void RADIO(void)
         i++;
        }
    }*/
-        printf("Now sending %d...",maze[m][n]);
-        ok = radio.write( &maze[m][n], sizeof(unsigned char) ); // maze[m][n]
+        data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
+        printf("Now sending %b...",data_transmit);
+        ok = radio.write( &data_transmit, sizeof(unsigned char) ); // maze[m][n]
         n++;
+
+        moved = 0;
 
 /*************************************************************Send Specific Data*******************************
     // Take the time, and send it.  This will block until complete
@@ -733,13 +753,13 @@ data_transmit = xory<<7 | Direction<<6 | treasure<<4 | wall<<1 | moved;
 // XorY  | PlusMinus | data
 // 1 bit | 1 bit       | 2 bits
 
-unsigned char XorY = 0; //0: update X-position, 1: update Y-position
+/*unsigned char XorY = 0; //0: update X-position, 1: update Y-position
 unsigned char PlusMinus = 1; //0: subtract one unit from position, 1: add one unit to position
 unsigned char data = 3; //unvisited, no wall, wall, or treasure
 unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
-
+*/
 printf("Now sending new position information...");
-ok = radio.write(&newInfo, sizeof(unsigned char));
+ok = radio.write(&data_transmit, sizeof(unsigned char));
 
     if (ok)
       printf("ok...");
@@ -834,7 +854,8 @@ ok = radio.write(&newInfo, sizeof(unsigned char));
       radio.startListening();
     }
   }
-////////////////////////////////////////////////
+/////////
+///////////////////////////////////////
   //
   // Change roles
   //
