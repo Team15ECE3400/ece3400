@@ -1,3 +1,35 @@
+#include <SPI.h>
+#include "nRF24L01.h"
+#include "RF24.h"
+#include "printf.h"
+// Set up nRF24L01 radio on SPI bus plus pins 9 & 10
+RF24 radio(9,10);
+// Radio pipe addresses for the 2 nodes to communicate.
+const uint64_t pipes[2] = { 0x0000000036LL, 0x0000000037LL };
+// The various roles supported by this sketch
+typedef enum { role_ping_out = 1, role_pong_back } role_e;
+// The debug-friendly names of those roles
+const char* role_friendly_name[] = { "invalid", "Ping out", "Pong back"};
+// The role of the current running sketch
+role_e role = role_pong_back;
+bool ok;
+//int Direction; ////////////
+int xory;
+int treasure;
+int wall;
+int moved;                                  
+int data_transmit;
+int sent = 1;
+int wL, wR, wF;
+int m;
+int n;
+//int x;////////////
+//int y;////////////
+
+
+////////////END RADIO INITILIZATION////////////
+
+
 #include <Servo.h>
 int QRE1113_PinL = 0; // connect left light sensor to analog pin 0
 int QRE1113_PinR = 1; // connect left light sensor to analog pin 0
@@ -120,11 +152,51 @@ void setup() {
     }
   }
 
+//////////RADIO CODE////////////
+  printf_begin();
+  printf("\n\rRF24/examples/GettingStarted/\n\r");
+  printf("ROLE: %s\n\r",role_friendly_name[role]);
+  printf("*** PRESS 'T' to begin transmitting to the other node\n\r");
+
+  radio.begin();
+
+  // optionally, increase the delay between retries & # of retries
+  radio.setRetries(15,15);
+  radio.setAutoAck(true);
+  // set the channel
+  radio.setChannel(0x50);
+  // set the power
+  // RF24_PA_MIN=-18dBm, RF24_PA_LOW=-12dBm, RF24_PA_MED=-6dBM, and RF24_PA_HIGH=0dBm.
+  radio.setPALevel(RF24_PA_MIN);
+  //RF24_250KBPS for 250kbs, RF24_1MBPS for 1Mbps, or RF24_2MBPS for 2Mbps
+  radio.setDataRate(RF24_250KBPS);
+
+  if ( role == role_ping_out )
+  {
+    radio.openWritingPipe(pipes[0]);
+    radio.openReadingPipe(1,pipes[1]);
+  }
+  else
+  {
+    radio.openWritingPipe(pipes[1]);
+    radio.openReadingPipe(1,pipes[0]);
+  }
+
+  radio.startListening();
+
+  radio.printDetails();
+
+    x=0;///////
+    y=0;///////
+//////////RADIO CODE////////////
+
   traverse(); // Start maze exploration algorithm
 
 }
 
 void loop() {
+
+  RADIO();
   
   if (turnRight) {
         left.write(Lforward);
@@ -599,5 +671,194 @@ if (go_north) {
     left.write(92);
     right.write(88);
     while(1);
+  }
+}
+
+
+
+
+void RADIO(void)
+{
+  //
+  // Ping out role.  Repeatedly send the current time
+  //
+
+  if (role == role_ping_out)
+  {
+    // First, stop listening so we can talk.
+    radio.stopListening();
+
+/*************************************************************Send whole maze*******************************/
+    // Take the time, and send it.  This will block until complete
+   /*
+   if(j==4){    //radio sends one element of array each time
+       j=0;
+       if(i == 4)
+        i=0;
+       else{
+        i++;
+       }
+   }*/
+        printf("Now sending %d...",maze[m][n]);
+        ok = radio.write( &maze[m][n], sizeof(unsigned char) ); // maze[m][n]
+        n++;
+
+/*************************************************************Send Specific Data*******************************
+    // Take the time, and send it.  This will block until complete
+
+// [x/y][+/-][Treasure][Treasure][Wall][Wall][Wall][Robot Moved]
+
+if (sent) {
+  sent = 0;
+  
+Direction = B1;
+xory = B1;
+treasure = B10;
+wall = B101;
+moved = B1;
+}
+else {
+  moved = B0;
+}
+
+data_transmit = xory<<7 | Direction<<6 | treasure<<4 | wall<<1 | moved;
+   
+        printf("Now sending %d...",data_transmit);
+        ok = radio.write( &data_transmit, sizeof(unsigned char) );
+
+*********************************************************************************************************/
+
+//Send new information only
+//Pack the bits in this pattern
+// XorY  | PlusMinus | data
+// 1 bit | 1 bit       | 2 bits
+
+unsigned char XorY = 0; //0: update X-position, 1: update Y-position
+unsigned char PlusMinus = 1; //0: subtract one unit from position, 1: add one unit to position
+unsigned char data = 3; //unvisited, no wall, wall, or treasure
+unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
+
+printf("Now sending new position information...");
+ok = radio.write(&newInfo, sizeof(unsigned char));
+
+    if (ok)
+      printf("ok...");
+    else
+      printf("failed.\n\r");
+
+    // Now, continue listening
+    radio.startListening();
+
+    // Wait here until we get a response, or timeout (250ms)
+    unsigned long started_waiting_at = millis();
+    bool timeout = false;
+    while ( ! radio.available() && ! timeout )
+      if (millis() - started_waiting_at > 200 )
+        timeout = true;
+
+    // Describe the results
+    if ( timeout )
+    {
+      printf("Failed, response timed out.\n\r");
+    }
+    else
+    {
+      // Grab the response, compare, and send to debugging spew
+      unsigned long got_info;
+      radio.read( &got_info, sizeof(unsigned long) );
+
+      // Spew it
+      printf("Got response %lu, round-trip delay: %lu\n\r",got_info,millis()-got_info);
+    }
+
+    // Try again 1s later
+    delay(250);
+
+    }
+       
+
+
+
+
+////////////////////////////////////////////////
+  //
+  // Pong back role.  Receive each packet, dump it out, and send it back
+  //
+
+  if ( role == role_pong_back )
+  {
+    // if there is data ready
+    if ( radio.available() )
+    {
+      // Dump the payloads until we've gotten everything
+      unsigned long got_info;
+      bool done = false;
+      while (!done)
+      {
+
+        // Fetch the payload, and see if this was the last one.
+        done = radio.read( &got_info, sizeof(unsigned long) );
+
+        //if (Direction && xory && moved) x++;
+        //if (!Direction && xory && moved) x--;
+        //if (Direction && !xory && moved) y++;
+        //if (!Direction && !xory && moved) y--;
+
+        // Spew it
+        printf("Got payload %d...\n",got_info);
+
+        for (int m=0; m<4; m++) {
+          for (int n=0; n<5; n++) {
+          
+             printf("%d, ",maze[m][n]);
+            
+          }
+          printf("\n");
+        }
+
+
+        // Delay just a little bit to let the other unit
+        // make the transition to receiver
+        delay(20);
+
+      }
+
+      // First, stop listening so we can talk
+      radio.stopListening();
+
+      // Send the final one back.
+      radio.write( &got_info, sizeof(unsigned long) );
+      printf("Sent response.\n\r");
+
+      // Now, resume listening so we catch the next packets.
+      radio.startListening();
+    }
+  }
+////////////////////////////////////////////////
+  //
+  // Change roles
+  //
+
+  if ( Serial.available() )
+  {
+    char c = toupper(Serial.read());
+    if ( c == 'T' && role == role_pong_back )
+    {
+      printf("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK\n\r");
+
+      // Become the primary transmitter (ping out)
+      role = role_ping_out;
+      radio.openWritingPipe(pipes[0]);
+      radio.openReadingPipe(1,pipes[1]);
+    }
+    else if ( c == 'R' && role == role_ping_out )
+    {
+      printf("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK\n\r");
+
+      // Become the primary receiver (pong back)
+      role = role_pong_back;
+      radio.openWritingPipe(pipes[1]);
+      radio.openReadingPipe(1,pipes[0]);
+    }
   }
 }
