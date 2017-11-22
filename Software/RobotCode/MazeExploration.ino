@@ -55,7 +55,7 @@ int goStraight = 0;
 int LeftRear = A2;
 int RightRear = A1;
 
-int CheckAgain = 0;
+int CheckAgain = 1; // Make it 1 for the first check
 int Traversing = 1;
 
 // Speeds for motors
@@ -128,6 +128,9 @@ int frontWallSensor = 0;
   int wall_loc[width][height];
 
 void setup() {
+
+delay(10000);
+  
   Serial.begin(9600);
   left.attach(6);    //connect left servo to pin 11 and right servo to pin 10
   right.attach(5);
@@ -151,6 +154,7 @@ void setup() {
       maze[i][j].x = i;
       maze[i][j].y = j;
     }
+    
   }
 
 //////////RADIO CODE////////////
@@ -192,6 +196,14 @@ void setup() {
 //////////RADIO CODE////////////
 
   traverse(); // Start maze exploration algorithm
+
+xory = 1;
+PlusMinus = 1;
+wall = 3;
+moved = 1;
+
+//data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
+RADIO(); // Transmit the first box
 
 }
 
@@ -268,8 +280,8 @@ void IR() {
   }
   else if (i==0) {
     leftWallSensor = 1;
-    //Serial.print("left wall detected. Distance: ");
-    //Serial.println(distance);
+    Serial.print("left wall detected. Distance: ");
+    Serial.println(distance);
   }
 
   if (i==1 && distance >20) {
@@ -279,8 +291,8 @@ void IR() {
   }
   else if (i==1) {
     rightWallSensor = 1;
-    //Serial.print("right wall detected. Distance: ");
-    //Serial.println(distance);
+    Serial.print("right wall detected. Distance: ");
+    Serial.println(distance);
   }
 
   if (i==2 && distance >20) {
@@ -290,8 +302,8 @@ void IR() {
   }
   else if (i==2) {
     frontWallSensor = 1;
-    //Serial.print("front wall detected. Distance: ");
-    //Serial.println(distance);
+    Serial.print("front wall detected. Distance: ");
+    Serial.println(distance);
   }
   
   i++;
@@ -524,7 +536,7 @@ Traversing = 0;
 
   if (go_north) {
     xory=1;
-    PlusMinus = 0;
+    PlusMinus = 1;
       next_pos = maze[curr_x][curr_y + 1];
       visited.push(next_pos);
       Direction = 0;
@@ -548,7 +560,7 @@ Traversing = 0;
     }
     else if (go_south) {
       xory=1;
-      PlusMinus = 1;
+      PlusMinus = 0;
       next_pos = maze[curr_x][curr_y - 1];
       visited.push(next_pos);
       Direction = 3;
@@ -626,7 +638,7 @@ if(Direction ==0){
   
 if (go_north) {
    xory=1;
-   PlusMinus = 0;
+   PlusMinus = 1;
       next_pos = maze[curr_x][curr_y + 1];
       visited.push(next_pos);
       Direction = 0;
@@ -650,7 +662,7 @@ if (go_north) {
     }
     else if (go_south) {
        xory=1;
-       PlusMinus = 1;
+       PlusMinus = 0;
       next_pos = maze[curr_x][curr_y - 1];
       visited.push(next_pos);
       Direction = 3;
@@ -698,7 +710,7 @@ void RADIO(void)
   //
   // Ping out role.  Repeatedly send the current time
   //
-  wall = frontWallSensor << 2| rightWallSensor<<1 | leftWallSensor;
+  wall =  leftWallSensor<< 2| rightWallSensor<<1 | frontWallSensor;
 
   if (role == role_ping_out)
   {
@@ -717,7 +729,9 @@ void RADIO(void)
        }
    }*/
         data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
-        printf("Now sending %b...",data_transmit);
+        Serial.print("Now sending: ");
+        Serial.println(data_transmit,BIN);
+        
         ok = radio.write( &data_transmit, sizeof(unsigned char) ); // maze[m][n]
         n++;
 
@@ -758,8 +772,8 @@ unsigned char PlusMinus = 1; //0: subtract one unit from position, 1: add one un
 unsigned char data = 3; //unvisited, no wall, wall, or treasure
 unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
 */
-printf("Now sending new position information...");
-ok = radio.write(&data_transmit, sizeof(unsigned char));
+//printf("Now sending new position information...");
+//ok = radio.write(&data_transmit, sizeof(unsigned char));
 
     if (ok)
       printf("ok...");
@@ -860,6 +874,16 @@ ok = radio.write(&data_transmit, sizeof(unsigned char));
   // Change roles
   //
 
+  if (1)
+    {
+      printf("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK\n\r");
+
+      // Become the primary transmitter (ping out)
+      role = role_ping_out;
+      radio.openWritingPipe(pipes[0]);
+      radio.openReadingPipe(1,pipes[1]);
+    }
+/*
   if ( Serial.available() )
   {
     char c = toupper(Serial.read());
@@ -881,5 +905,5 @@ ok = radio.write(&data_transmit, sizeof(unsigned char));
       radio.openWritingPipe(pipes[1]);
       radio.openReadingPipe(1,pipes[0]);
     }
-  }
+  }*/
 }
