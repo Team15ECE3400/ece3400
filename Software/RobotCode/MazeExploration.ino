@@ -129,7 +129,7 @@ int frontWallSensor = 0;
 
 void setup() {
 
-delay(10000);
+//delay(10000);
   
   Serial.begin(9600);
   left.attach(6);    //connect left servo to pin 11 and right servo to pin 10
@@ -193,17 +193,20 @@ delay(10000);
 
     x=0;///////
     y=0;///////
-//////////RADIO CODE////////////
 
-  traverse(); // Start maze exploration algorithm
+
+traverse(); // Start maze exploration algorithm
+
+//////////RADIO CODE////////////
+//data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
+//RADIO(); // Transmit the first box
 
 xory = 1;
 PlusMinus = 1;
 wall = 3;
 moved = 1;
 
-//data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
-RADIO(); // Transmit the first box
+
 
 }
 
@@ -349,6 +352,8 @@ void LineFollowing() {
   }
   
    if(analogRead(RightRear) > 850 && analogRead(LeftRear) > 850  && CheckAgain ) { // Make a decision on whether to go left, right, or straight.
+
+
       
       left.write(Stop);
       right.write(Stop);
@@ -356,6 +361,7 @@ void LineFollowing() {
       CheckAgain = 0;
       moved = 1;
       traverse(); // this will assign variable "turnRight", "turnLeft", or "turn180" to 1
+
       RADIO();
       
   }
