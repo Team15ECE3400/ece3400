@@ -157,6 +157,8 @@ void setup() {
     
   }
 
+  
+
 //////////RADIO CODE////////////
   printf_begin();
   printf("\n\rRF24/examples/GettingStarted/\n\r");
@@ -194,12 +196,11 @@ void setup() {
     x=0;///////
     y=0;///////
 
+RADIO();
 
 traverse(); // Start maze exploration algorithm
 
-//////////RADIO CODE////////////
-//data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
-//RADIO(); // Transmit the first box
+
 
 xory = 1;
 PlusMinus = 1;
@@ -353,16 +354,22 @@ void LineFollowing() {
   
    if(analogRead(RightRear) > 850 && analogRead(LeftRear) > 850  && CheckAgain ) { // Make a decision on whether to go left, right, or straight.
 
-
       
       left.write(Stop);
       right.write(Stop);
+
+IR(); // check walls
+
+RADIO();
+
+delay(3000);
+      
       //Serial.println("Algorithm");
       CheckAgain = 0;
       moved = 1;
       traverse(); // this will assign variable "turnRight", "turnLeft", or "turn180" to 1
 
-      RADIO();
+      
       
   }
    
@@ -406,7 +413,7 @@ void checkWalls(){
 
 void traverse() {
 
-  IR(); // check walls
+  //IR(); // check walls
 
   //Serial.println("Traverse"); 
   if(initNode == 0){
@@ -716,6 +723,7 @@ void RADIO(void)
   //
   // Ping out role.  Repeatedly send the current time
   //
+  //wall =  frontWallSensor<< 2| leftWallSensor<<1 | rightWallSensor;
   wall =  leftWallSensor<< 2| rightWallSensor<<1 | frontWallSensor;
 
   if (role == role_ping_out)
@@ -742,6 +750,16 @@ void RADIO(void)
         n++;
 
         moved = 0;
+
+        if (PlusMinus) Serial.print("+");
+        else Serial.print("-");
+        if (xory) Serial.print("y");
+        else Serial.print("x");
+        if (wall & 0x4) Serial.print(", left wall");
+        if (wall & 0x2) Serial.print(", right wall");
+        if (wall & 0x1) Serial.print(", front wall");
+        Serial.println(" ");
+        
 
 /*************************************************************Send Specific Data*******************************
     // Take the time, and send it.  This will block until complete
