@@ -18,19 +18,6 @@ int _17kHz = 5;
 int _660Hz = 6;
 int SoundCount;
 
-
-void setup() {
-  //Serial.begin(115200); // use the serial port
-  TIMSK0 = 0; // turn off timer0 for lower jitter
-  ADCSRA = 0xe7; // set the adc to free running mode
-  ADMUX = 0x40; // use adc0 for microphone
-  DIDR0 = 0x01; // turn off the digital input for adc0
-  pinMode(_7kHz, OUTPUT); //Setup pin 9 as output
-  pinMode(_12kHz, OUTPUT); //Setup pin 9 as output
-  pinMode(_17kHz, OUTPUT); //Setup pin 9 as output
-  pinMode(_660Hz, INPUT); // Sound Detection
-}
- 
 int twelve = 0; 
 int treasure = 0; //0 - no treasure, 1 - 7 khz, 2 - 12 khz, 3 - 17 khz
 
@@ -65,20 +52,40 @@ bool StartDetection(void) {
       return false; //Turn off LED
       //Serial.println("In else");
     }
-    
+
+
 }
 
-void loop() {
+
+
+
+void setup() {
+  Serial.begin(115200); // use the serial port
+  TIMSK0 = 0; // turn off timer0 for lower jitter
+  ADCSRA = 0xe7; // set the adc to free running mode
+  ADMUX = 0x45; // use adc5 for microphone
+  DIDR0 = 0x01; // turn off the digital input for adc0
+  pinMode(_7kHz, OUTPUT); //Setup pin 9 as output
+  pinMode(_12kHz, OUTPUT); //Setup pin 9 as output
+  pinMode(_17kHz, OUTPUT); //Setup pin 9 as output
+  pinMode(_660Hz, OUTPUT); // Sound Detection
 
 while (1) {
 if (StartDetection() == true) break;
 }
-pinMode(_660Hz, OUTPUT); // Sound Detection
+
 digitalWrite(_660Hz, HIGH);
+ADCSRA = 0xe5; // set the adc to not free running mode
+ADMUX = 0x40; // use adc0 for treasure detection
+  
+}
 
 
-  ADMUX = 0x45; // use adc5 for treasure detection
-  ADCSRA = 0xe5; // set the adc to not free running mode
+
+void loop() {
+
+ // ADMUX = 0x40; // use adc0 for treasure detection
+ // ADCSRA = 0xe5; // set the adc to not free running mode
   while(1) { // reduces jitter
     cli();  // UDRE interrupt slows this way down on arduino1.0
     for (int i = 0 ; i < 512 ; i += 2) { // save 256 samples
@@ -96,6 +103,7 @@ digitalWrite(_660Hz, HIGH);
     fft_reorder(); // reorder the data before doing the fft
     fft_run(); // process the data in the fft
     fft_mag_log(); // take the output of the fft
+
     sei();
 
     //determine treasure detected
@@ -116,17 +124,19 @@ digitalWrite(_660Hz, HIGH);
     //detect treasure frequency by evaluating bin ranges
     
     //7 khz (max_bin >= 45) && (max_bin <= 47)
-    if((max_bin >= 45) && (max_bin <= 57)){
-      //Serial.print("7 kHz Treasure detected ");
-      //Serial.println(max_bin);
+    if((max_bin >= 45) && (max_bin <= 57) && (max_amp > 140)){
+      Serial.print("7 kHz Treasure detected  ");
+      Serial.println(max_bin);
+      Serial.print("  ");
+      Serial.print(max_amp);
       treasure = 1; 
       digitalWrite(_7kHz, HIGH);
     }
 
     //12 khz (max_bin >= 79) && (max_bin <= 81)
-    else if((max_bin >= 70) && (max_bin <= 80)){
-      //Serial.print("12 kHz Treasure detected ");
-      //Serial.println(max_bin);
+    else if((max_bin >= 70) && (max_bin <= 80) && (max_amp > 140)){
+      Serial.print("12 kHz Treasure detected ");
+      Serial.println(max_bin);
       twelve++;
       if (twelve >= 3) treasure = 2; 
       digitalWrite(_12kHz, HIGH);
@@ -134,16 +144,16 @@ digitalWrite(_660Hz, HIGH);
     }
     
     //17 khz max_bin >= 113) && (max_bin <= 115
-    else if((max_bin >= 110) && (max_bin <= 120)){
-      //Serial.print("17 kHz Treasure detected ");
-      //Serial.println(max_bin);
+    else if((max_bin >= 110) && (max_bin <= 120) && (max_amp > 140)){
+      Serial.print("17 kHz Treasure detected ");
+      Serial.println(max_bin);
       treasure = 3; 
       digitalWrite(_17kHz, HIGH);
     }
     
     //no treasure
     else{
-     // Serial.println("No Treasure detected");
+     Serial.println("No Treasure detected");
      treasure = 0; 
      twelve = 0;
      digitalWrite(_7kHz, LOW);
