@@ -45,15 +45,14 @@ Servo right;
 int x=0;
 int y=1;
 
-const int Left = 3;
-const int Right = 2;
 int turnRight = 0;
 int turnLeft = 0;
 int turn180 = 0;
 int goStraight = 0;
 
-int LeftRear = A2;
-int RightRear = A1;
+int LeftRear = A0;
+int LeftFront = A1;
+int RightFront = A2;
 
 int CheckAgain = 1; // Make it 1 for the first check
 int Traversing = 1;
@@ -62,8 +61,8 @@ int Traversing = 1;
 int Lforward = 95; // was 100
 int Lbackward = 85; // was 80
 int Stop = 90;
-int Rforward = 86; // was 80
-int Rbackward = 94; // was 100
+int Rforward = 85; // was 80
+int Rbackward = 95; // was 100
 
 #include "StackArray.h"
 #include <stdio.h>
@@ -111,6 +110,11 @@ int rightWallSensor = 0;
 int frontWallSensor = 0;
 //Thus ends IR stuff.
 
+int _7kHz = 2;
+int _12kHz = 3;
+int _17kHz = 4;
+int _660Hz = 8;
+
 //create stack
   StackArray <Node> visited; 
   int initNode =0; //push the first node to visited stack
@@ -132,20 +136,22 @@ void setup() {
 //delay(10000);
   
   Serial.begin(9600);
-  left.attach(6);    //connect left servo to pin 11 and right servo to pin 10
+  left.attach(6);
   right.attach(5);
   left.write(90);            
   right.write(90);
   
-  pinMode(Left, INPUT);
-  pinMode(Right, INPUT);
+  pinMode(LeftFront, INPUT);
+  pinMode(RightFront, INPUT);
   
   pinMode(LeftRear, INPUT);
-  pinMode(RightRear, INPUT);
+  //pinMode(RightRear, INPUT);
   
   pinMode(IR_LEFT, INPUT);
   pinMode(IR_RIGHT, INPUT);
   pinMode(IR_FOR, INPUT);
+
+  pinMode(2,INPUT);
 
   // Initialize Maze
   for (int i = 0; i < width; i++) {
@@ -207,8 +213,9 @@ PlusMinus = 1;
 wall = 3;
 moved = 1;
 
-
-
+Serial.println("Waiting for 660Hz");
+while(!digitalRead(_660Hz) || !digitalRead(2)); // Wait for push button to be pressed
+Serial.println("660Hz Detected!");
 }
 
 void loop() {
@@ -217,8 +224,8 @@ void loop() {
         left.write(Lforward);
         right.write(Rbackward); // verify this works.. want right wheel to go backwards
         //Serial.println("Turn 90 Degrees Right");
-        delay(500);
-        while(digitalRead(Right) ==0 ); // Wait here until right front sensor senses line
+        delay(300);
+        while(analogRead(RightFront) < 700); // Wait here until right front sensor senses line
         //Serial.println("frontright Detected");
         turnRight = 0;
   } 
@@ -226,8 +233,8 @@ void loop() {
         left.write(Lbackward);  // verify this works.. want left wheel to go backwards
         right.write(Rforward);
         //Serial.println("Turn 90 Degrees Left");
-        delay(500);
-        while(digitalRead(Left) == 0); // Wait here until left front sensor senses line
+        delay(300);
+        while(analogRead(LeftFront) < 700); // Wait here until left front sensor senses line
         //Serial.println("frontleft Detected");
         turnLeft = 0;
   }
@@ -235,11 +242,11 @@ void loop() {
         left.write(Lforward);
         right.write(Rbackward); // verify this works.. want right wheel to go backwards
         //Serial.println("Turn 180 Degrees");
-        delay(500);
-        while(digitalRead(Right) ==0); // Wait here until right front sensor senses line
+        delay(300);
+        while(analogRead(RightFront) < 700); // Wait here until right front sensor senses line
         //Serial.println("frontright Detected part 1");
-        delay(500);
-        while(digitalRead(Right) ==0); // Wait here until right front sensor senses line
+        delay(300);
+        while(analogRead(RightFront) < 700); // Wait here until right front sensor senses line
         //Serial.println("frontright Detected part 2");
         turn180 = 0;
   }
@@ -251,6 +258,7 @@ void loop() {
         goStraight = 0;
   }
 
+Serial.println("Line Following");
   LineFollowing();
   
 }
@@ -307,7 +315,6 @@ void IR() {
   else if (i==2) {
     frontWallSensor = 1;
     Serial.print("front wall detected. Distance: ");
-    Serial.println(distance);
   }
   
   i++;
@@ -318,29 +325,39 @@ void IR() {
 }
 ///////////////////////////////////////////////////////
 void LineFollowing() {
+  
 
-    if (digitalRead(Left)) LFCrossed = 1;
-   else LFCrossed = 0;
+    if (analogRead(LeftFront) > 700) LFCrossed = 1;
+    else LFCrossed = 0;
+
+   if (LFCrossed) Serial.println("Left Front crossed");
 
    //determine line status for right sensor
-   if (digitalRead(Right)) RFCrossed = 1;
+   if (analogRead(RightFront) > 700) RFCrossed = 1;
    else RFCrossed = 0;
+
+   if (RFCrossed) Serial.println("Right Front crossed");
    
   //drive servos
    // if both sensors on either side of line
    if(!LFCrossed && !RFCrossed){
     left.write(Lforward);            
     right.write(Rforward);
+    //Serial.println("drive1");
    }
 
    else if(LFCrossed && !RFCrossed){
     left.write(Lforward);          
-    right.write(Rforward + 2); // slow down right wheel slightly
+    right.write(Rforward - 4); // slow down right wheel slightly
+    //delay(100);
+    Serial.println("drive2");
    }
 
    else if(!LFCrossed && RFCrossed){
-    left.write(Lforward - 2); // slow down left wheel slightly            
+    left.write(Lforward + 4); // slow down left wheel slightly            
     right.write(Rforward);
+    //delay(100);
+    Serial.println("drive3");
    }
 
    else if(LFCrossed && RFCrossed) {
@@ -352,7 +369,7 @@ void LineFollowing() {
     // Do nothing
   }
   
-   if(analogRead(RightRear) > 850 && analogRead(LeftRear) > 850  && CheckAgain ) { // Make a decision on whether to go left, right, or straight.
+   if(analogRead(LeftRear) > 850  && CheckAgain ) { // Make a decision on whether to go left, right, or straight.
 
       
       left.write(Stop);
@@ -361,8 +378,6 @@ void LineFollowing() {
 IR(); // check walls
 
 RADIO();
-
-delay(3000);
       
       //Serial.println("Algorithm");
       CheckAgain = 0;
@@ -684,20 +699,6 @@ if (go_north) {
 
 }
 
-   /* else {
-      Serial.println("backtracking");
-     if(frontWallSensor==0){
-        goStraight=1;
-      }
-      else if(rightWallSensor ==0) turnRight = 1;
-      else if(leftWallSensor ==0) turnLeft = 1;
-      else { turn180=1;}
-        
-      next_pos = visited.peek(); 
-      visited.pop(); 
-    }
-*/
-
     for (int j = height - 1; j >=0; j--) {
       for (int i = 0; i < width; i++) {
       Serial.print(maze[i][j].visitedVar);Serial.print(", ");
@@ -711,7 +712,7 @@ if (go_north) {
     Serial.print("Maze is complete");
     left.write(92);
     right.write(88);
-    while(1);
+    //while(1);
   }
 }
 
@@ -731,17 +732,6 @@ void RADIO(void)
     // First, stop listening so we can talk.
     radio.stopListening();
 
-/*************************************************************Send whole maze*******************************/
-    // Take the time, and send it.  This will block until complete
-   /*
-   if(j==4){    //radio sends one element of array each time
-       j=0;
-       if(i == 4)
-        i=0;
-       else{
-        i++;
-       }
-   }*/
         data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
         Serial.print("Now sending: ");
         Serial.println(data_transmit,BIN);
@@ -760,44 +750,6 @@ void RADIO(void)
         if (wall & 0x1) Serial.print(", front wall");
         Serial.println(" ");
         
-
-/*************************************************************Send Specific Data*******************************
-    // Take the time, and send it.  This will block until complete
-
-// [x/y][+/-][Treasure][Treasure][Wall][Wall][Wall][Robot Moved]
-
-if (sent) {
-  sent = 0;
-  
-Direction = B1;
-xory = B1;
-treasure = B10;
-wall = B101;
-moved = B1;
-}
-else {
-  moved = B0;
-}
-
-data_transmit = xory<<7 | Direction<<6 | treasure<<4 | wall<<1 | moved;
-   
-        printf("Now sending %d...",data_transmit);
-        ok = radio.write( &data_transmit, sizeof(unsigned char) );
-
-*********************************************************************************************************/
-
-//Send new information only
-//Pack the bits in this pattern
-// XorY  | PlusMinus | data
-// 1 bit | 1 bit       | 2 bits
-
-/*unsigned char XorY = 0; //0: update X-position, 1: update Y-position
-unsigned char PlusMinus = 1; //0: subtract one unit from position, 1: add one unit to position
-unsigned char data = 3; //unvisited, no wall, wall, or treasure
-unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
-*/
-//printf("Now sending new position information...");
-//ok = radio.write(&data_transmit, sizeof(unsigned char));
 
     if (ok)
       printf("ok...");
@@ -907,27 +859,5 @@ unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
       radio.openWritingPipe(pipes[0]);
       radio.openReadingPipe(1,pipes[1]);
     }
-/*
-  if ( Serial.available() )
-  {
-    char c = toupper(Serial.read());
-    if ( c == 'T' && role == role_pong_back )
-    {
-      printf("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK\n\r");
 
-      // Become the primary transmitter (ping out)
-      role = role_ping_out;
-      radio.openWritingPipe(pipes[0]);
-      radio.openReadingPipe(1,pipes[1]);
-    }
-    else if ( c == 'R' && role == role_ping_out )
-    {
-      printf("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK\n\r");
-
-      // Become the primary receiver (pong back)
-      role = role_pong_back;
-      radio.openWritingPipe(pipes[1]);
-      radio.openReadingPipe(1,pipes[0]);
-    }
-  }*/
 }
