@@ -16,7 +16,7 @@ bool ok;
 //int Direction; ////////////
 int PlusMinus;
 int xory;
-int treasure = B10;
+int treasure = 0;
 int wall;
 int moved;                                  
 int data_transmit;
@@ -314,18 +314,21 @@ void loop() {
 ///////////////////////////////////////////////////////
 void IR() {
 
+  
 if (digitalRead(_7kHz)) {
   Serial.println("7 kHz detected");
-  treasure = 1; // B001
+  treasure = 1; // B01
 }
-  if (digitalRead(_12kHz)) {
+if (digitalRead(_12kHz)) {
     Serial.println("12 kHz detected");
-    treasure = 2; // B010
+    treasure = 2; // B10
   }
-  if (digitalRead(_17kHz)) {
+if (digitalRead(_17kHz)) {
     Serial.println("17 kHz detected");
-    treasure = 4; // B100
+    treasure = 3; // B11
   }
+
+
 
   for (int k = 0; k<3; k++) {
   
@@ -390,6 +393,21 @@ if (digitalRead(_7kHz)) {
 ///////////////////////////////////////////////////////
 void LineFollowing() {
 
+//while (1) {
+  if (digitalRead(_7kHz)) {
+        Serial.println("7 kHz detected");
+        treasure = 1; // B01
+      }
+        if (digitalRead(_12kHz)) {
+          Serial.println("12 kHz detected");
+          treasure = 2; // B10
+        }
+        if (digitalRead(_17kHz)) {
+          Serial.println("17 kHz detected");
+          treasure = 3; // B11
+        }
+
+
     if (analogRead(LeftFront) > 700) LFCrossed = 1;
    else LFCrossed = 0;
 
@@ -416,6 +434,10 @@ void LineFollowing() {
 
    else if(LFCrossed && RFCrossed) {
       CheckAgain = 1;
+
+        
+
+      
     // do nothing
   }
     //if either light sensor is off the line (has onStat_ == 0)  
@@ -773,6 +795,8 @@ void RADIO(void)
           moved = 1;
           data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
         }
+
+        
         
         Serial.print("Now sending: ");
         Serial.println(data_transmit,BIN);
@@ -781,6 +805,7 @@ void RADIO(void)
      //   n++;
 
         moved = 0;
+        treasure = 0; // Reset
 
         if (PlusMinus) Serial.print("+");
         else Serial.print("-");
