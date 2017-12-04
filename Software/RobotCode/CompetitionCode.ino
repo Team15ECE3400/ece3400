@@ -725,7 +725,6 @@ void traverse() {
     if (doneMaze == 1)
       //done = 1;
     Serial.println(" ");
-    RADIO(); // Send done signal
   }
 
   Serial.println("Explored Array");
@@ -766,7 +765,14 @@ void RADIO(void)
 
         data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
 
-        if (doneMaze) data_transmit = 0<<7 | 0<<6 | 3<<4 | 0<<1 | 1;
+        if (doneMaze) {
+          xory = 0;
+          PlusMinus = 0;
+          treasure = 3;
+          wall = 0;
+          moved = 1;
+          data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
+        }
         
         Serial.print("Now sending: ");
         Serial.println(data_transmit,BIN);
