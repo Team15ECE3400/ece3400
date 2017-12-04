@@ -81,6 +81,7 @@ struct Node {
 // IR Code
 int AX;
 int i = 0;
+int start = 0;
 
 int IR_LEFT = A3;
 int IR_RIGHT = A4;
@@ -171,6 +172,8 @@ void setup() {
       maze[i][j].x = i;
       maze[i][j].y = j;
       explored[i][j] =4;
+     if(i==3&&j==0)
+        explored[i][j]=3;
     }
     
   }
@@ -238,6 +241,10 @@ Serial.println("660Hz Detected!");
 
 
 }
+
+
+
+
 
 void loop() {
 
@@ -379,6 +386,7 @@ if (digitalRead(_7kHz)) {
   i = 0;
 
 }
+
 ///////////////////////////////////////////////////////
 void LineFollowing() {
 
@@ -417,6 +425,7 @@ void LineFollowing() {
   
    if(analogRead(LeftRear) > 850  && CheckAgain ) { // Make a decision on whether to go left, right, or straight.
 
+      start = 1;
       Serial.println("about to traverse");
       left.write(Stop);
       right.write(Stop);
@@ -446,14 +455,14 @@ int curr_y = 0;
 Node curr_pos; 
 Node prev_pos;
 Node next_pos;
-
 void checkWalls(){
   if(Direction ==0){
     bitWrite(wall_loc[curr_x][curr_y], 0, frontWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 1, rightWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 2, leftWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 3, 0);
-  }
+    }
+  
   if(Direction ==1){
     bitWrite(wall_loc[curr_x][curr_y], 0, leftWallSensor);
     bitWrite(wall_loc[curr_x][curr_y], 1, frontWallSensor);
@@ -474,18 +483,20 @@ void checkWalls(){
   }
 }
 
+
+
 void traverse() {
 
   //IR(); // check walls
 
   //Serial.println("Traverse"); 
-  if(initNode == 0){
+  if(initNode == 0 && start == 1){
     visited.push(maze[width-1][0]); // Start at (4,0)
     initNode=1; //visited adds the corner node as the first element
     prev_pos = visited.peek();
   }
 
-  if (!doneMaze) {
+  if (!doneMaze && start == 1) {
   
   // if (!visited.isEmpty()) { // this doesn't work because we always push one node to the stack
     
@@ -493,9 +504,6 @@ void traverse() {
     visited.pop(); 
     curr_x = curr_pos.x; 
     curr_y = curr_pos.y;
-
-    
-    
 
     int temp_North = go_north;
     int temp_East = go_east;
@@ -520,6 +528,63 @@ void traverse() {
     bitWrite(wall_bin, 1, bitRead(wall_loc[curr_x][curr_y],1));
     bitWrite(wall_bin, 2, bitRead(wall_loc[curr_x][curr_y],2));
     bitWrite(wall_bin, 3, bitRead(wall_loc[curr_x][curr_y],3));
+
+
+//    else if (bitRead(wall_bin,0) == 0 && explored[curr_x][curr_y+1]==0) 
+//        go_north =1;
+//    else if (bitRead(wall_bin,1) == 0 && explored[curr_x+1][curr_y]==0)
+//        go_east =1;
+//    else if (bitRead(wall_bin,2) == 0 && explored[curr_x-1][curr_y]==0)
+//        go_west =1;
+//    else if (bitRead(wall_bin,3) == 0 && explored[curr_x][curr_y-1]==0)
+//        go_south=1;
+
+
+//    else if (temp_North) go_south = 1;
+//    else if (temp_East) go_west = 1;
+//    else if (temp_West) go_east = 1;
+//    else if (temp_South) go_north = 1;
+
+
+    Serial.println(go_west);
+    Serial.println(Direction);
+    
+    if ((bitRead(wall_bin,0) ||maze[curr_x][curr_y+1].visitedVar ==1) && maze[curr_x][curr_y].visitedVar == 0)
+        explored[curr_x][curr_y] = explored[curr_x][curr_y] - 1;
+   
+    if ((bitRead(wall_bin,1) ||maze[curr_x+1][curr_y].visitedVar ==1) && maze[curr_x][curr_y].visitedVar == 0)
+        explored[curr_x][curr_y] = explored[curr_x][curr_y] - 1;
+    
+    if ((bitRead(wall_bin,2) ||maze[curr_x-1][curr_y].visitedVar ==1) && maze[curr_x][curr_y].visitedVar == 0)
+        explored[curr_x][curr_y] = explored[curr_x][curr_y] - 1;
+        
+    if ((bitRead(wall_bin,3) ||maze[curr_x][curr_y-1].visitedVar ==1) && maze[curr_x][curr_y].visitedVar == 0)
+        explored[curr_x][curr_y] = explored[curr_x][curr_y] - 1;
+
+    if (curr_x+1 < 4 && maze[curr_x+1][curr_y].visitedVar ==1 && maze[curr_x][curr_y].visitedVar==0 && bitRead(wall_bin,1) == 0){
+        explored[curr_x+1][curr_y] = explored[curr_x+1][curr_y] - 1;
+    }
+    if (curr_x-1 > -1 && maze[curr_x-1][curr_y].visitedVar ==1 && maze[curr_x][curr_y].visitedVar==0 && bitRead(wall_bin,2) == 0) {
+        explored[curr_x-1][curr_y] = explored[curr_x-1][curr_y] - 1;
+    }
+    if (curr_y+1 < 5 && maze[curr_x][curr_y+1].visitedVar ==1 && maze[curr_x][curr_y].visitedVar==0 && bitRead(wall_bin,0) == 0) {
+        explored[curr_x][curr_y+1] = explored[curr_x][curr_y+1] - 1;
+    }
+    if (curr_y-1 > -1 && maze[curr_x][curr_y-1].visitedVar ==1 && maze[curr_x][curr_y].visitedVar==0 && bitRead(wall_bin,3) == 0) {
+        explored[curr_x][curr_y-1] = explored[curr_x][curr_y-1] - 1;
+    }
+    
+    if (bitRead(wall_bin,0) ||maze[curr_x][curr_y+1].visitedVar ==1){
+        if (bitRead(wall_bin,1)|| maze[curr_x+1][curr_y].visitedVar ==1) { 
+            if(bitRead(wall_bin,2) || maze[curr_x-1][curr_y].visitedVar ==1)  { 
+                if (bitRead(wall_bin,3) || maze[curr_x][curr_y-1].visitedVar ==1){
+                    explored[curr_x][curr_y] = 0;
+                }
+            }
+        }
+    }
+
+    int checkBackTrack =0;
 
     if (bitRead(wall_bin,0) == 0 && explored[curr_x][curr_y+1]==4&& !(prev_pos.x == curr_x &&prev_pos.y==curr_y+1)) 
         go_north =1;
@@ -553,15 +618,12 @@ void traverse() {
         go_west =1;
     else if (bitRead(wall_bin,3) == 0 && explored[curr_x][curr_y-1]==1 &&  !(prev_pos.x == curr_x &&prev_pos.y==curr_y-1))
         go_south=1;
-//    else if (bitRead(wall_bin,0) == 0 && explored[curr_x][curr_y+1]==0) 
-//        go_north =1;
-//    else if (bitRead(wall_bin,1) == 0 && explored[curr_x+1][curr_y]==0)
-//        go_east =1;
-//    else if (bitRead(wall_bin,2) == 0 && explored[curr_x-1][curr_y]==0)
-//        go_west =1;
-//    else if (bitRead(wall_bin,3) == 0 && explored[curr_x][curr_y-1]==0)
-//        go_south=1;
-    else {
+    else{
+      checkBackTrack=1;
+      }
+   curr_pos.visitedVar = maze[curr_x][curr_y].visitedVar = 1; //mark as visited
+
+   if(checkBackTrack==1) {
       if (BackTrack[curr_x][curr_y] == 0) {
         Serial.println("backtrack south");
         go_south = 1;
@@ -579,54 +641,6 @@ void traverse() {
         Serial.println("backtrack north");
       }
     }
-
-//    else if (temp_North) go_south = 1;
-//    else if (temp_East) go_west = 1;
-//    else if (temp_West) go_east = 1;
-//    else if (temp_South) go_north = 1;
-
-
-    Serial.println(go_west);
-    Serial.println(Direction);
-    
-    if (bitRead(wall_bin,0) ||maze[curr_x][curr_y+1].visitedVar ==1)
-        explored[curr_x][curr_y] = explored[curr_x][curr_y] - 1;
-   
-    if (bitRead(wall_bin,1) ||maze[curr_x+1][curr_y].visitedVar ==1)
-        explored[curr_x][curr_y] = explored[curr_x][curr_y] - 1;
-    
-    if (bitRead(wall_bin,2) ||maze[curr_x-1][curr_y].visitedVar ==1)
-        explored[curr_x][curr_y] = explored[curr_x][curr_y] - 1;
-        
-    if (bitRead(wall_bin,3) ||maze[curr_x][curr_y-1].visitedVar ==1)
-        explored[curr_x][curr_y] = explored[curr_x][curr_y] - 1;
-
-    //added now
- if (maze[curr_x][curr_y+1].visitedVar ==1 && maze[curr_x][curr_y+1].visitedVar ==0)
-        explored[curr_x][curr_y+1] = explored[curr_x][curr_y+1] - 1;
-    if (maze[curr_x+1][curr_y].visitedVar ==1 && maze[curr_x+1][curr_y].visitedVar ==0)
-        explored[curr_x+1][curr_y] = explored[curr_x+1][curr_y] - 1;
-    if (maze[curr_x-1][curr_y].visitedVar ==1 && maze[curr_x-1][curr_y].visitedVar ==0)
-        explored[curr_x-1][curr_y] = explored[curr_x-1][curr_y] - 1;
-    if (maze[curr_x][curr_y-1].visitedVar ==1 && maze[curr_x][curr_y-1].visitedVar ==0)
-        explored[curr_x][curr_y-1] = explored[curr_x][curr_y-1] - 1;
-//end of added
-
-    
-    if (bitRead(wall_bin,0) ||maze[curr_x][curr_y+1].visitedVar ==1){
-        if (bitRead(wall_bin,1)|| maze[curr_x+1][curr_y].visitedVar ==1) { 
-            if(bitRead(wall_bin,2) || maze[curr_x-1][curr_y].visitedVar ==1)  { 
-                if (bitRead(wall_bin,3) || maze[curr_x][curr_y-1].visitedVar ==1){
-                    explored[curr_x][curr_y] = 0;
-                }
-            }
-        }
-    }
-   curr_pos.visitedVar = maze[curr_x][curr_y].visitedVar = 1; //mark as visited
-  
-   if ( (explored[prev_pos.x][prev_pos.y] != 0))
-        explored[prev_pos.x][prev_pos.y] = explored[prev_pos.x][prev_pos.y] - 1;
-
   if (go_north) {
     if(Direction==0){goStraight=1; 
       turnLeft=turnRight=turn180=0;}
@@ -708,8 +722,24 @@ void traverse() {
       Serial.print(maze[i][j].visitedVar);Serial.print(", ");
       doneMaze=doneMaze&&(explored[i][j]==4||explored[i][j]==0);
     }
+    if (doneMaze == 1)
+      //done = 1;
     Serial.println(" ");
+    RADIO(); // Send done signal
   }
+
+  Serial.println("Explored Array");
+        
+          for (int n=4; n>=0; n--) {
+            for (int m=0; m<4; m++) {
+          
+             printf("%d, ",explored[m][n]);
+            
+          }
+          printf("\n");
+        }
+
+  
  }
   else if(doneMaze){
     Serial.print("Maze is complete");
@@ -719,9 +749,6 @@ void traverse() {
   }
 }
 
-
-
-
 void RADIO(void)
 {
   //
@@ -730,23 +757,17 @@ void RADIO(void)
   //wall =  frontWallSensor<< 2| leftWallSensor<<1 | rightWallSensor;
   wall =  leftWallSensor<< 2| rightWallSensor<<1 | frontWallSensor;
 
+
+
   if (role == role_ping_out)
   {
     // First, stop listening so we can talk.
     radio.stopListening();
 
-/*************************************************************Send whole maze*******************************/
-    // Take the time, and send it.  This will block until complete
-   /*
-   if(j==4){    //radio sends one element of array each time
-       j=0;
-       if(i == 4)
-        i=0;
-       else{
-        i++;
-       }
-   }*/
         data_transmit = xory<<7 | PlusMinus<<6 | treasure<<4 | wall<<1 | moved;
+
+        if (doneMaze) data_transmit = 0<<7 | 0<<6 | 3<<4 | 0<<1 | 1;
+        
         Serial.print("Now sending: ");
         Serial.println(data_transmit,BIN);
         
@@ -763,45 +784,6 @@ void RADIO(void)
         if (wall & 0x2) Serial.print(", right wall");
         if (wall & 0x1) Serial.print(", front wall");
         Serial.println(" ");
-        
-
-/*************************************************************Send Specific Data*******************************
-    // Take the time, and send it.  This will block until complete
-
-// [x/y][+/-][Treasure][Treasure][Wall][Wall][Wall][Robot Moved]
-
-if (sent) {
-  sent = 0;
-  
-Direction = B1;
-xory = B1;
-treasure = B10;
-wall = B101;
-moved = B1;
-}
-else {
-  moved = B0;
-}
-
-data_transmit = xory<<7 | Direction<<6 | treasure<<4 | wall<<1 | moved;
-   
-        printf("Now sending %d...",data_transmit);
-        ok = radio.write( &data_transmit, sizeof(unsigned char) );
-
-*********************************************************************************************************/
-
-//Send new information only
-//Pack the bits in this pattern
-// XorY  | PlusMinus | data
-// 1 bit | 1 bit       | 2 bits
-
-/*unsigned char XorY = 0; //0: update X-position, 1: update Y-position
-unsigned char PlusMinus = 1; //0: subtract one unit from position, 1: add one unit to position
-unsigned char data = 3; //unvisited, no wall, wall, or treasure
-unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
-*/
-//printf("Now sending new position information...");
-//ok = radio.write(&data_transmit, sizeof(unsigned char));
 
     if (ok)
       printf("ok...");
@@ -838,15 +820,6 @@ unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
 
     }
        
-
-
-
-
-////////////////////////////////////////////////
-  //
-  // Pong back role.  Receive each packet, dump it out, and send it back
-  //
-
   if ( role == role_pong_back )
   {
     // if there is data ready
@@ -861,11 +834,6 @@ unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
         // Fetch the payload, and see if this was the last one.
         done = radio.read( &got_info, sizeof(unsigned long) );
 
-        //if (Direction && xory && moved) x++;
-        //if (!Direction && xory && moved) x--;
-        //if (Direction && !xory && moved) y++;
-        //if (!Direction && !xory && moved) y--;
-
         // Spew it
         printf("Got payload %d...\n",got_info);
 
@@ -878,9 +846,6 @@ unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
           printf("\n");
         }
 
-
-        // Delay just a little bit to let the other unit
-        // make the transition to receiver
         delay(20);
 
       }
@@ -896,11 +861,6 @@ unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
       radio.startListening();
     }
   }
-/////////
-///////////////////////////////////////
-  //
-  // Change roles
-  //
 
   if (1)
     {
@@ -911,27 +871,7 @@ unsigned char newInfo = XorY << 3 | PlusMinus << 2 | data;
       radio.openWritingPipe(pipes[0]);
       radio.openReadingPipe(1,pipes[1]);
     }
-/*
-  if ( Serial.available() )
-  {
-    char c = toupper(Serial.read());
-    if ( c == 'T' && role == role_pong_back )
-    {
-      printf("*** CHANGING TO TRANSMIT ROLE -- PRESS 'R' TO SWITCH BACK\n\r");
 
-      // Become the primary transmitter (ping out)
-      role = role_ping_out;
-      radio.openWritingPipe(pipes[0]);
-      radio.openReadingPipe(1,pipes[1]);
-    }
-    else if ( c == 'R' && role == role_ping_out )
-    {
-      printf("*** CHANGING TO RECEIVE ROLE -- PRESS 'T' TO SWITCH BACK\n\r");
-
-      // Become the primary receiver (pong back)
-      role = role_pong_back;
-      radio.openWritingPipe(pipes[1]);
-      radio.openReadingPipe(1,pipes[0]);
-    }
-  }*/
 }
+
+
