@@ -1,4 +1,4 @@
-PCB Mill
+PCB Mill Tutorial (In progress..)
 by Daniel Edens, Oct. 27th, 2017
 
 Introduction
@@ -22,26 +22,28 @@ This tutorial is based on the ![https://ece.uncc.edu/sites/ece.uncc.edu/files/me
 
 1) Importing Gerber Files
 The only gerber files you need are the top layer .GTL, bottom layer .GBL, and drill which may be a .DRL or .TXT file. You will have to try .DRL and .TXT to see which works.
-Place your gerber files in “Desktop/Mill Project Files/<your net id folder>/<project name>” shown in Figure 1. Open the ISOPro Software. If the software doesn’t load, restart the computer and try again. In the software, click “File > Import > Auto-detect File(s)”. Navigate to your gerber files and select the .GTL, .GBL, and .TXT or .DRL files.
+Place your gerber files in “Desktop/Mill Project Files/<your net id folder>/<project name>” shown in Figure 3. Open the ISOPro Software. If the software doesn’t load, restart the computer and try again. In the software, click “File > Import > Auto-detect File(s)”. Navigate to your gerber files and select the .GTL, .GBL, and .TXT or .DRL files.
 
 ![](./Images/1.JPG)
 Figure 3
 
+Import your gerber files using Auto Import.
 ![](./Images/2.JPG)
 Figure 4
 
+Select the .GBL, .GTL, and .txt Drill file (if this drill file doesn't work, try a different drill file in your gerber output)
 ![](./Images/3.JPG)
 Figure 5
 
+Select the size fo your PCB. The software believes the PCB could be one of these sizes.
 ![](./Images/4.JPG)
 Figure 6
 
-![](./Images/5.JPG)
-Figure 7
-
+Click view->Layer Table
 ![](./Images/6.JPG)
 Figure 8
 
+Click view->Tool Table, and change the size of drill bit.
 ![](./Images/7.JPG)
 Figure 9
 
